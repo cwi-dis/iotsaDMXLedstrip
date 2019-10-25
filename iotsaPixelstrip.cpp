@@ -63,7 +63,7 @@ IotsaPixelstripMod::handler() {
 }
 
 String IotsaPixelstripMod::info() {
-  String message = "<p>Built with pixelstrip module. See <a href=\"/pixelstrip\">/pixelstrip</a> to change NeoPixel strip settings.</p>";
+  String message = "<p>Built with pixelstrip module. See <a href=\"/pixelstrip\">/pixelstrip</a> to change NeoPixel strip settings, <a href=\"/api/pixelstrip\">/api/pixelstrip</a> and <a href=\"/api/pixels\">/api/pixels</a> for REST API.</p>";
   return message;
 }
 #endif // IOTSA_WITH_WEB
@@ -88,37 +88,68 @@ void IotsaPixelstripMod::setupStrip() {
 
 #ifdef IOTSA_WITH_API
 bool IotsaPixelstripMod::getHandler(const char *path, JsonObject& reply) {
-  reply["pin"] = pin;
-  reply["stripType"] = stripType;
-  reply["count"] = count;
-  reply["bpp"] = bpp;
-  return true;
+  if (strcmp(path, "/api/pixelstrip") == 0) {
+    reply["pin"] = pin;
+    reply["stripType"] = stripType;
+    reply["count"] = count;
+    reply["bpp"] = bpp;
+    return true;
+  } else if (strcmp(path, "/api/pixels") == 0) {
+    JsonArray& data = reply.createNestedArray("data");
+    if (buffer) {
+      for(int i=0; i<count*bpp; i++) {
+        data.add(buffer[i]);
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply) {
-  bool anyChanged = false;
-  JsonObject& reqObj = request.as<JsonObject>();
-  if (reqObj.containsKey("pin")) {
-    pin = reqObj.get<int>("pin");
-    anyChanged = true;
+    JsonObject& reqObj = request.as<JsonObject>();
+  if (strcmp(path, "/api/pixelstrip") == 0) {
+    bool anyChanged = false;
+    if (reqObj.containsKey("pin")) {
+      pin = reqObj.get<int>("pin");
+      anyChanged = true;
+    }
+    if (reqObj.containsKey("stripType")) {
+      stripType = reqObj.get<int>("stripType");
+      anyChanged = true;
+    }
+    if (reqObj.containsKey("count")) {
+      count = reqObj.get<int>("count");
+      anyChanged = true;
+    }
+    if (reqObj.containsKey("bpp")) {
+      bpp = reqObj.get<int>("bpp");
+      anyChanged = true;
+    }
+    if (anyChanged) {
+      configSave();
+      setupStrip();
+    }
+    return anyChanged;
+  } else if (strcmp(path, "/api/pixels") == 0) {
+    if (buffer == NULL) return false;
+    if (reqObj.containsKey("clear") && reqObj.get<bool>("clear")) {
+      memset(buffer, 0, count*bpp);
+    }
+    int start = 0;
+    if (reqObj.containsKey("start")) {
+      start = reqObj.get<int>("start");
+    }
+    JsonArray& data = reqObj.get<JsonArray>("data");
+    for(JsonArray::iterator it=data.begin(); it!=data.end(); ++it) {
+      if (start >= count*bpp) return false;
+      int value = it->as<int>();
+      buffer[start++] = value;
+    }
+    dmxCallback();
+    return true;
   }
-  if (reqObj.containsKey("stripType")) {
-    stripType = reqObj.get<int>("stripType");
-    anyChanged = true;
-  }
-  if (reqObj.containsKey("count")) {
-    count = reqObj.get<int>("count");
-    anyChanged = true;
-  }
-  if (reqObj.containsKey("bpp")) {
-    bpp = reqObj.get<int>("bpp");
-    anyChanged = true;
-  }
-  if (anyChanged) {
-    configSave();
-    setupStrip();
-  }
-  return anyChanged;
+  return false;
 }
 #endif // IOTSA_WITH_API
 
@@ -148,6 +179,7 @@ void IotsaPixelstripMod::serverSetup() {
 #endif
 #ifdef IOTSA_WITH_API
   api.setup("/api/pixelstrip", true, true);
+  api.setup("/api/pixels", true, true);
   name = "pixelstrip";
 #endif
 }
