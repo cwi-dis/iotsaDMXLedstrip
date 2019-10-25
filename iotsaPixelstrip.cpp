@@ -84,6 +84,9 @@ void IotsaPixelstripMod::setupStrip() {
   memset(buffer, 0, count*bpp);
   strip = new Adafruit_NeoPixel(count, pin, stripType);
   dmxCallback();
+  if (dmx) {
+    dmx->setHandler(buffer, count*bpp, this);
+  }
 }
 
 #ifdef IOTSA_WITH_API

@@ -41,7 +41,11 @@ protected:
   uint8_t *buffer; 
   size_t count;
   IotsaDMXHandler *dmxHandler;
-  String argument;
+  String shortName;
+  String longName;
+  int portAddress;
+  int universe;
+  int firstIndex;
 };
 
 #endif
