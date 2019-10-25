@@ -34,17 +34,14 @@ public:
   void serverSetup();
   void loop();
   String info();
-  void setHandler(uint8_t *_buffer, size_t _count, IotsaDMXHandler *_dmxHandler) {
-    buffer = _buffer;
-    count = _count;
-    dmxHandler = _dmxHandler;
-  }
+  void setHandler(uint8_t *_buffer, size_t _count, IotsaDMXHandler *_dmxHandler);
 protected:
   bool getHandler(const char *path, JsonObject& reply);
   bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply);
   void configLoad();
   void configSave();
   void handler();
+  void fillPollReply();
   uint8_t *buffer; 
   size_t count;
   IotsaDMXHandler *dmxHandler;
