@@ -2,6 +2,7 @@
 #define _IOTSADMX_H_
 #include "iotsa.h"
 #include "iotsaApi.h"
+#include <WiFiUdp.h>
 
 #ifdef IOTSA_WITH_API
 #define IotsaDMXModBaseMod IotsaApiMod
@@ -21,7 +22,13 @@ public:
   : IotsaDMXModBaseMod(app),
     buffer(NULL),
     count(0),
-    dmxHandler(NULL)
+    dmxHandler(NULL),
+    shortName(""),
+    longName(""),
+    portAddress(0),
+    universe(0),
+    firstIndex(0),
+    udp()
   {}
   void setup();
   void serverSetup();
@@ -46,6 +53,7 @@ protected:
   int portAddress;
   int universe;
   int firstIndex;
+  WiFiUDP udp;
 };
 
 #endif

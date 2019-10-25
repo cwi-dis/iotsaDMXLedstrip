@@ -2,6 +2,8 @@
 #include "iotsaDMX.h"
 #include "iotsaConfigFile.h"
 
+#define ARTNET_PORT 6454
+
 #ifdef IOTSA_WITH_WEB
 void
 IotsaDMXMod::handler() {
@@ -101,6 +103,7 @@ void IotsaDMXMod::serverSetup() {
   api.setup("/api/dmx", true, true);
   name = "dmx";
 #endif
+  udp.begin(ARTNET_PORT);
 }
 
 void IotsaDMXMod::configLoad() {
@@ -122,4 +125,9 @@ void IotsaDMXMod::configSave() {
 }
 
 void IotsaDMXMod::loop() {
+  int packetSize = udp.parsePacket();
+  if (packetSize) {
+    IFDEBUG IotsaSerial.print("Received DMX packet,size=");
+    IFDEBUG IotsaSerial.println(packetSize);
+  }
 }
