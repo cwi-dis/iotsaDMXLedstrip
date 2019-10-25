@@ -3,6 +3,7 @@
 #include "iotsa.h"
 #include "iotsaApi.h"
 #include "iotsaDMX.h"
+#include <Adafruit_NeoPixel.h>
 
 #ifdef IOTSA_WITH_API
 #define IotsaPixelstripModBaseMod IotsaApiMod
@@ -28,8 +29,15 @@ protected:
   bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply);
   void configLoad();
   void configSave();
+  void setupStrip();
   void handler();
   IotsaDMXMod *dmx;
+  Adafruit_NeoPixel *strip;
+  uint8_t *buffer;
+  int bpp;
+  int count;
+  int stripType;
+  int pin;
   String argument;
 };
 
