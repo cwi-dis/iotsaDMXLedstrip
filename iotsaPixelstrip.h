@@ -38,7 +38,6 @@ protected:
   int count;
   int stripType;
   int pin;
-  String argument;
 };
 
 #endif
