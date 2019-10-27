@@ -4,24 +4,25 @@
 
 #define ARTNET_PORT 6454
 
-struct ArtnetHeader {
+#pragma pack(push)
+#pragma pack(1)
+struct ArtnetPacket {
   char ident[8];
   uint16_t opcode;
-  uint16_t protocolVersion;
-};
-
-struct ArtnetPacket {
-  struct ArtnetHeader header;
   union {
+    struct  {
+        uint16_t protocolVersion;
+    } pollRequest;
     struct {
       uint32_t ipaddr;
       uint16_t port;
       uint16_t version;
-      uint16_t dmxPort;
+      uint8_t dmxPortHi;
+      uint8_t dmxPortLo;
       uint16_t oem;
       uint8_t ubea;
-      uint16_t esta;
       uint8_t status;
+      uint16_t esta;
       char shortName[18];
       char longName[64];
       char report[64];
@@ -47,13 +48,13 @@ struct ArtnetPacket {
     } data;
   };
 } inPkt;
+#pragma pack(pop)
+
+#define ARTNET_MIN_PACKET_SIZE 10
 
 struct ArtnetPacket outPkt = {
-  {
-    .ident={'A', 'r', 't', '-', 'n', 'e', 't', 0},
-    .opcode=0x5100,
-    .protocolVersion=0x0e00
-  }
+  .ident={'A', 'r', 't', '-', 'N', 'e', 't', 0},
+  .opcode=0x2100,
 };
 
 #ifdef IOTSA_WITH_WEB
@@ -198,48 +199,53 @@ void IotsaDMXMod::fillPollReply() {
   outPkt.pollReply.ipaddr = ip;
   outPkt.pollReply.port=ARTNET_PORT;
   outPkt.pollReply.version=1;
-  outPkt.pollReply.dmxPort = portAddress & 0x7ff0;
+  outPkt.pollReply.dmxPortHi = (portAddress & 0x7f00) >> 8;
+  outPkt.pollReply.dmxPortLo = (portAddress & 0x00f0) >> 4;
   outPkt.pollReply.oem=0;
   outPkt.pollReply.ubea=0;
   outPkt.pollReply.status=0x10;
-  outPkt.pollReply.esta=0xf07f;
+  outPkt.pollReply.esta=0x7ff0;
   strncpy(outPkt.pollReply.shortName, shortName.c_str(), sizeof(outPkt.pollReply.shortName));
   strncpy(outPkt.pollReply.longName, longName.c_str(), sizeof(outPkt.pollReply.longName));
   strncpy(outPkt.pollReply.report, "#0001 [0000] All is well", sizeof(outPkt.pollReply.report));
-  outPkt.pollReply.numPorts = 1;
+ 
+  int nPorts = 1;
+  outPkt.pollReply.numPorts = ntohs(nPorts);
   memset(outPkt.pollReply.portType, 0, sizeof(outPkt.pollReply.portType));
-  outPkt.pollReply.portType[0] = 0x80;
+  for (int i=0; i<nPorts; i++) {
+    outPkt.pollReply.portType[i] = 0x80;  // Artnet->DMX512
+  }
   memset(outPkt.pollReply.inputStatus, 0, sizeof(outPkt.pollReply.inputStatus));
   memset(outPkt.pollReply.outputStatus, 0, sizeof(outPkt.pollReply.outputStatus));
   memset(outPkt.pollReply.inputPort, 0, sizeof(outPkt.pollReply.inputPort));
   memset(outPkt.pollReply.outputPort, 0, sizeof(outPkt.pollReply.outputPort));
-  outPkt.pollReply.outputPort[0] = portAddress & 0xf;
+  for (int i=0; i<nPorts; i++) {
+    outPkt.pollReply.outputPort[0] = (portAddress+i) & 0xf;
+  }
+
   memset(outPkt.pollReply.mac, 0, sizeof(outPkt.pollReply.mac));
   outPkt.pollReply.bindip = ip;
   outPkt.pollReply.bindIndex=0;
-  outPkt.pollReply.status2=0x08;
+  outPkt.pollReply.status2=0x09;
 
 }
 
 void IotsaDMXMod::loop() {
   size_t packetSize = udp.parsePacket();
-  if (packetSize > sizeof(struct ArtnetHeader)) {
-    if (packetSize > sizeof(struct ArtnetPacket)) {
-      IFDEBUG IotsaSerial.println("Ignoring long packet");
-      return;
-    } 
+  if (packetSize > ARTNET_MIN_PACKET_SIZE) {
+    if (packetSize > sizeof(inPkt)) packetSize = sizeof(inPkt);
     if (udp.read((char *)&inPkt, sizeof(inPkt)) != (int)packetSize) {
       IFDEBUG IotsaSerial.println("Ignoring incomplete packet");
       return;
     }
-    if (strcmp(inPkt.header.ident, "Art-Net") != 0 || ntohs(inPkt.header.protocolVersion) != 14) {
+    if (strcmp(inPkt.ident, "Art-Net") != 0 || ntohs(inPkt.pollRequest.protocolVersion) != 14) {
       IFDEBUG IotsaSerial.print("Ignoring unknown packet, hdr=");
-      IFDEBUG IotsaSerial.print(inPkt.header.ident);
-      IFDEBUG IotsaSerial.print("version=");
-      IFDEBUG IotsaSerial.println(inPkt.header.protocolVersion);
+      IFDEBUG IotsaSerial.print(inPkt.ident);
+      IFDEBUG IotsaSerial.print(", version=");
+      IFDEBUG IotsaSerial.println(inPkt.pollRequest.protocolVersion);
       return;
     }
-    uint16_t opcode = inPkt.header.opcode;
+    uint16_t opcode = inPkt.opcode;
     if (opcode == 0x5000) {
       IFDEBUG IotsaSerial.println("Data packet");
     } else if (opcode == 0x2000) {
