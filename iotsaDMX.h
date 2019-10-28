@@ -25,7 +25,8 @@ public:
     dmxHandler(NULL),
     shortName(""),
     longName(""),
-    portAddress(0),
+    network(0),
+    subnet(0),
     universe(0),
     firstIndex(0),
     udp()
@@ -47,7 +48,8 @@ protected:
   IotsaDMXHandler *dmxHandler;
   String shortName;
   String longName;
-  int portAddress;
+  int network;
+  int subnet;
   int universe;
   int firstIndex;
   WiFiUDP udp;

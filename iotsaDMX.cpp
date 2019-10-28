@@ -17,8 +17,8 @@ struct ArtnetPacket {
       uint32_t ipaddr;
       uint16_t port;
       uint16_t version;
-      uint8_t dmxPortHi;
-      uint8_t dmxPortLo;
+      uint8_t dmxNetwork;
+      uint8_t dmxSubnet;
       uint16_t oem;
       uint8_t ubea;
       uint8_t status;
@@ -72,9 +72,14 @@ IotsaDMXMod::handler() {
     longName = server->arg("longName");
     anyChanged = true;
   }
-  if( server->hasArg("portAddress")) {
+  if( server->hasArg("network")) {
     if (needsAuthentication()) return;
-    portAddress = server->arg("portAddress").toInt();
+    network = server->arg("network").toInt();
+    anyChanged = true;
+  }
+  if( server->hasArg("subnet")) {
+    if (needsAuthentication()) return;
+    subnet = server->arg("subnet").toInt();
     anyChanged = true;
   }
   if( server->hasArg("universe")) {
@@ -96,9 +101,10 @@ IotsaDMXMod::handler() {
   String message = "<html><head><title>Boilerplate module</title></head><body><h1>Boilerplate module</h1>";
   message += "<form method='get'>Short name: <input name='shortName' value='" + htmlEncode(shortName) + "'><br>";
   message += "Long name: <input name='longName' value='" + htmlEncode(longName) + "'><br>";
-  message += "Network, Subnet and Port (16bit int): <input name='portAddress' value='" + String(portAddress) + "'><br>";
-  message += "Universe: <input name='universe' value='" + String(universe) + "'><br>";
-  message += "Index of first dimmer in universe: <input name='firstIndex' value='" + String(portAddress) + "'><br>";
+  message += "DMX Network: <input name='network' value='" + String(network) + "'><br>";
+  message += "DMX Subnet: <input name='subnet' value='" + String(subnet) + "'><br>";
+  message += "DMX Universe: <input name='universe' value='" + String(universe) + "'><br>";
+  message += "Index of first dimmer in universe: <input name='firstIndex' value='" + String(firstIndex) + "'><br>";
   message += "Number of dimmers: " + String(count);
   message += "<br><input type='submit'></form>";
   server->send(200, "text/html", message);
@@ -119,7 +125,8 @@ void IotsaDMXMod::setup() {
 bool IotsaDMXMod::getHandler(const char *path, JsonObject& reply) {
   reply["shortName"] = shortName;
   reply["longName"] = longName;
-  reply["portAddress"] = portAddress;
+  reply["network"] = network;
+  reply["subnet"] = subnet;
   reply["universe"] = universe;
   reply["firstIndex"] = firstIndex;
   return true;
@@ -136,8 +143,12 @@ bool IotsaDMXMod::putHandler(const char *path, const JsonVariant& request, JsonO
     longName = reqObj.get<String>("longName");
     anyChanged = true;
   }
-  if (reqObj.containsKey("portAddress")) {
-    portAddress = reqObj.get<int>("portAddress");
+  if (reqObj.containsKey("network")) {
+    network = reqObj.get<int>("network");
+    anyChanged = true;
+  }
+  if (reqObj.containsKey("subnet")) {
+    subnet = reqObj.get<int>("subnet");
     anyChanged = true;
   }
   if (reqObj.containsKey("universe")) {
@@ -171,7 +182,8 @@ void IotsaDMXMod::configLoad() {
   IotsaConfigFileLoad cf("/config/dmx.cfg");
   cf.get("shortName", shortName, "iotsaDMXLedstrip");
   cf.get("longName", longName, "iotsaDMXLedstrip");
-  cf.get("portAddress", portAddress, 0);
+  cf.get("network", network, 0);
+  cf.get("subnet", subnet, 0);
   cf.get("universe", universe, 0);
   cf.get("firstIndex", firstIndex, 0);
 }
@@ -180,7 +192,8 @@ void IotsaDMXMod::configSave() {
   IotsaConfigFileSave cf("/config/dmx.cfg");
   cf.put("shortName", shortName);
   cf.put("longName", longName);
-  cf.put("portAddress", portAddress);
+  cf.put("network", network);
+  cf.put("subnet", subnet);
   cf.put("universe", universe);
   cf.put("firstIndex", firstIndex);
 }
@@ -200,8 +213,8 @@ void IotsaDMXMod::fillPollReply() {
   outPkt.pollReply.ipaddr = ip;
   outPkt.pollReply.port=ARTNET_PORT;
   outPkt.pollReply.version=1;
-  outPkt.pollReply.dmxPortHi = (portAddress & 0x7f00) >> 8;
-  outPkt.pollReply.dmxPortLo = (portAddress & 0x00f0) >> 4;
+  outPkt.pollReply.dmxNetwork = network;
+  outPkt.pollReply.dmxSubnet = subnet;
   outPkt.pollReply.oem=0;
   outPkt.pollReply.ubea=0;
   outPkt.pollReply.status=0x10;
@@ -221,7 +234,7 @@ void IotsaDMXMod::fillPollReply() {
   memset(outPkt.pollReply.inputPort, 0, sizeof(outPkt.pollReply.inputPort));
   memset(outPkt.pollReply.outputPort, 0, sizeof(outPkt.pollReply.outputPort));
   for (int i=0; i<nPorts; i++) {
-    outPkt.pollReply.outputPort[0] = (portAddress+i) & 0xf;
+    outPkt.pollReply.outputPort[0] = universe+i;
   }
 
   memset(outPkt.pollReply.mac, 0, sizeof(outPkt.pollReply.mac));
