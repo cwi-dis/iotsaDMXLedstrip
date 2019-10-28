@@ -11,7 +11,7 @@ struct ArtnetPacket {
   uint16_t opcode;
   union {
     struct  {
-        uint16_t protocolVersion;
+      uint16_t protocolVersion;
     } pollRequest;
     struct {
       uint32_t ipaddr;
@@ -40,6 +40,7 @@ struct ArtnetPacket {
       uint8_t filler2[26];
     } pollReply;
     struct {
+      uint16_t protocolVersion;
       uint8_t seq;
       uint8_t physical;
       uint16_t universe;
@@ -247,7 +248,25 @@ void IotsaDMXMod::loop() {
     }
     uint16_t opcode = inPkt.opcode;
     if (opcode == 0x5000) {
-      IFDEBUG IotsaSerial.println("Data packet");
+      if (inPkt.data.universe != universe) {
+        IFDEBUG IotsaSerial.print("Ignore data for universe=");
+        IFDEBUG IotsaSerial.println(inPkt.data.universe);
+        return;
+      }
+      if (buffer == NULL || count == 0 || dmxHandler == NULL) {
+        IFDEBUG IotsaSerial.println("Ignore data, no buffer/handler set");
+      }
+      bool anyChange = false;
+      for(int i=0; i<inPkt.data.length && i<(int)count; i++) {
+        if (inPkt.data.data[i] != buffer[i]) {
+          buffer[i] = inPkt.data.data[i];
+          anyChange = true;
+        }
+      }
+      if (anyChange) {
+        IFDEBUG IotsaSerial.println("Data, and callback");
+        dmxHandler->dmxCallback();
+      }
     } else if (opcode == 0x2000) {
       IFDEBUG IotsaSerial.println("Poll packet");
       udp.beginPacket(udp.remoteIP(), udp.remotePort());
