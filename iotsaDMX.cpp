@@ -257,7 +257,10 @@ void IotsaDMXMod::loop() {
         IFDEBUG IotsaSerial.println("Ignore data, no buffer/handler set");
       }
       bool anyChange = false;
-      for(int i=0; i<inPkt.data.length && i<(int)count; i++) {
+      int nValues = ntohs(inPkt.data.length);
+      if ((int)count < nValues) nValues = count;
+      IFDEBUG IotsaSerial.printf("xxxjack count=%d\r\n", nValues);
+      for(int i=0; i<nValues; i++) {
         if (inPkt.data.data[i] != buffer[i]) {
           buffer[i] = inPkt.data.data[i];
           anyChange = true;
@@ -269,7 +272,7 @@ void IotsaDMXMod::loop() {
       }
     } else if (opcode == 0x2000) {
       IFDEBUG IotsaSerial.println("Poll packet");
-      udp.beginPacket(udp.remoteIP(), udp.remotePort());
+      udp.beginPacket(udp.remoteIP(), 6454);
       udp.write((uint8_t *)&outPkt, sizeof(outPkt));
       udp.endPacket();
     } else if (opcode == 0x2100) {
