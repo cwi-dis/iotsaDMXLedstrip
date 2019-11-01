@@ -6,6 +6,12 @@
 #define NEOPIXEL_TYPE (NEO_GRB + NEO_KHZ800)
 #define NEOPIXEL_COUNT 1 // Default number of pixels
 #define NEOPIXEL_BPP 3  // Default number of colors per pixel
+
+// Define TESTMODE_PIN if there is a test-mode switch attached
+// to that pin. The LEDs will show a looping pattern if that input is high.
+// #undef TESTMODE_PIN
+#define TESTMODE_PIN 5
+
 #ifdef IOTSA_WITH_WEB
 
 void
@@ -71,6 +77,9 @@ String IotsaPixelstripMod::info() {
 void IotsaPixelstripMod::setup() {
   configLoad();
   setupStrip();
+#ifdef TESTMODE_PIN
+  pinMode(TESTMODE_PIN, INPUT);
+#endif
 }
 
 void IotsaPixelstripMod::setupStrip() {
@@ -204,4 +213,21 @@ void IotsaPixelstripMod::configSave() {
 }
 
 void IotsaPixelstripMod::loop() {
+#ifdef TESTMODE_PIN
+  if (digitalRead(TESTMODE_PIN) && buffer != 0) {
+    int value = (millis() >> 3) & 0xff;  // Loop intensities every 2 seconds, approximately
+    int bits = (millis() >> 11) % ((1 << bpp)-1); // Cycle over which colors to light
+    if (bits == 0) bits = ((1 << bpp)-1);
+    for (int i=0; i < count; i++) {
+      for (int b=0; b < bpp; b++) {
+        int thisValue = 0;
+        if (bits & (1<<((b+i) % bpp))) {
+          thisValue = value;
+        }
+        buffer[i*bpp+b] = thisValue;
+      }
+    }
+    dmxCallback();
+  }
+#endif
 }
