@@ -50,6 +50,11 @@ IotsaPixelstripMod::handler() {
       bpp = server->arg("bpp").toInt();
       anyChanged = true;
     }
+    if( server->hasArg("gamma")) {
+      if (needsAuthentication()) return;
+      gamma = server->arg("gamma").toFloat();
+      anyChanged = true;
+    }
     if (anyChanged) {
       configSave();
       setupStrip();
@@ -61,6 +66,7 @@ IotsaPixelstripMod::handler() {
   message += "Neopixel type: <input name='stripType' value='" + String(stripType) + "'><br>";
   message += "Number of NeoPixels: <input name='count' value='" + String(count) + "'><br>";
   message += "LEDs per NeoPixel: <input name='bpp' value='" + String(bpp) + "'><br>";
+  message += "Gamma (1.0 neutral, 2.2 suggested): <input name='gamma' value='" + String(gamma) + "'><br>";
   message += "<input type='submit'></form>";
   message += "<h2>Set pixel</h2><form method='get'><br>Set pixel <input name='setIndex'> to <input name='setValue'><br>";
   message += "<input type='submit'></form>";
@@ -91,6 +97,21 @@ void IotsaPixelstripMod::setupStrip() {
     IotsaSerial.println("No memory");
   }
   memset(buffer, 0, count*bpp);
+  if (gammaTable) free(gammaTable);
+  gammaTable = NULL;
+  if (gamma != 0 && gamma != 1) {
+    gammaTable = (uint8_t *)malloc(256);
+    if (gammaTable == NULL) {
+      IotsaSerial.println("No memory");
+    }
+    for(int i=0; i<256; i++) {
+      float gval = powf((float)i/256.0, gamma);
+      int ival = (int)(gval * 256);
+      if (ival < 0) ival = 0;
+      if (ival > 255) ival = 255;
+      gammaTable[i] = ival;
+    }
+  }
   strip = new Adafruit_NeoPixel(count, pin, stripType);
   dmxCallback();
   if (dmx) {
@@ -105,6 +126,7 @@ bool IotsaPixelstripMod::getHandler(const char *path, JsonObject& reply) {
     reply["stripType"] = stripType;
     reply["count"] = count;
     reply["bpp"] = bpp;
+    reply["gamma"] = gamma;
     return true;
   } else if (strcmp(path, "/api/pixels") == 0) {
     JsonArray& data = reply.createNestedArray("data");
@@ -136,6 +158,10 @@ bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request
     }
     if (reqObj.containsKey("bpp")) {
       bpp = reqObj.get<int>("bpp");
+      anyChanged = true;
+    }
+    if (reqObj.containsKey("gamma")) {
+      gamma = reqObj.get<int>("gamma");
       anyChanged = true;
     }
     if (anyChanged) {
@@ -175,9 +201,11 @@ void IotsaPixelstripMod::dmxCallback() {
   for (int i=0; i < count; i++) {
     uint32_t color = 0;
     for (int b=0; b<bpp; b++) {
-      color = color << 8 | *ptr++;
+      int cval = *ptr++;
+      if (gammaTable) cval = gammaTable[cval];
+      color = color << 8 | cval;
     }
-    IFDEBUG IotsaSerial.print(color);
+    IFDEBUG IotsaSerial.print(color, HEX);
     IFDEBUG IotsaSerial.print(' ');
     strip->setPixelColor(i, color);
   }
@@ -202,6 +230,7 @@ void IotsaPixelstripMod::configLoad() {
   cf.get("stripType", stripType, NEOPIXEL_TYPE);
   cf.get("count", count, NEOPIXEL_COUNT);
   cf.get("bpp", bpp, NEOPIXEL_BPP);
+  cf.get("gamma", gamma, 1.0);
 }
 
 void IotsaPixelstripMod::configSave() {
@@ -210,6 +239,7 @@ void IotsaPixelstripMod::configSave() {
   cf.put("stripType", stripType);
   cf.put("count", count);
   cf.put("bpp", bpp);
+  cf.put("gamma", gamma);
 }
 
 void IotsaPixelstripMod::loop() {

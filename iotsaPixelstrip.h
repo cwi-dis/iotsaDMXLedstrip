@@ -15,7 +15,9 @@ class IotsaPixelstripMod : public IotsaPixelstripModBaseMod, public IotsaDMXHand
 public:
   IotsaPixelstripMod(IotsaApplication& app)
   : IotsaPixelstripModBaseMod(app),
-    dmx(NULL)
+    dmx(NULL),
+    strip(NULL),
+    gammaTable(NULL)
   {}
   using IotsaPixelstripModBaseMod::IotsaPixelstripModBaseMod;
   void setup();
@@ -38,6 +40,8 @@ protected:
   int count;
   int stripType;
   int pin;
+  float gamma;
+  uint8_t *gammaTable;
 };
 
 #endif
