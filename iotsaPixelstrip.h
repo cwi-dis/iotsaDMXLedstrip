@@ -17,7 +17,8 @@ public:
   : IotsaPixelstripModBaseMod(app),
     dmx(NULL),
     strip(NULL),
-    gammaTable(NULL)
+    gammaTable(NULL),
+    testmode(0)
   {}
   using IotsaPixelstripModBaseMod::IotsaPixelstripModBaseMod;
   void setup();
@@ -42,6 +43,7 @@ protected:
   int pin;
   float gamma;
   uint8_t *gammaTable;
+  int testmode;
 };
 
 #endif

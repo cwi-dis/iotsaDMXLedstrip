@@ -55,6 +55,13 @@ IotsaPixelstripMod::handler() {
       gamma = server->arg("gamma").toFloat();
       anyChanged = true;
     }
+#ifdef TESTMODE_PIN
+    if( server->hasArg("testmode")) {
+      if (needsAuthentication()) return;
+      testmode = server->arg("testmode").toInt();
+      anyChanged = true;
+    }
+#endif
     if (anyChanged) {
       configSave();
       setupStrip();
@@ -67,6 +74,9 @@ IotsaPixelstripMod::handler() {
   message += "Number of NeoPixels: <input name='count' value='" + String(count) + "'><br>";
   message += "LEDs per NeoPixel: <input name='bpp' value='" + String(bpp) + "'><br>";
   message += "Gamma (1.0 neutral, 2.2 suggested): <input name='gamma' value='" + String(gamma) + "'><br>";
+#ifdef TESTMODE_PIN
+  message += "Testmode (0=off, 1=on, 2=switch) <input name='testmode' value='" + String(testmode) + "'><br>";
+#endif
   message += "<input type='submit'></form>";
   message += "<h2>Set pixel</h2><form method='get'><br>Set pixel <input name='setIndex'> to <input name='setValue'><br>";
   message += "<input type='submit'></form>";
@@ -127,6 +137,9 @@ bool IotsaPixelstripMod::getHandler(const char *path, JsonObject& reply) {
     reply["count"] = count;
     reply["bpp"] = bpp;
     reply["gamma"] = gamma;
+  #ifdef TESTMODE_PIN
+    reply["testmode"] = testmode;
+  #endif
     return true;
   } else if (strcmp(path, "/api/pixels") == 0) {
     JsonArray& data = reply.createNestedArray("data");
@@ -164,6 +177,13 @@ bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request
       gamma = reqObj.get<int>("gamma");
       anyChanged = true;
     }
+#ifdef TESTMODE_PIN
+    if (reqObj.containsKey("testmode")) {
+      testmode = reqObj.get<int>("testmode");
+      anyChanged = true;
+    }
+
+#endif
     if (anyChanged) {
       configSave();
       setupStrip();
@@ -230,6 +250,9 @@ void IotsaPixelstripMod::configLoad() {
   cf.get("stripType", stripType, NEOPIXEL_TYPE);
   cf.get("count", count, NEOPIXEL_COUNT);
   cf.get("bpp", bpp, NEOPIXEL_BPP);
+#ifdef TESTMODE_PIN
+  cf.get("testmode", testmode, 2);
+#endif
   cf.get("gamma", gamma, 1.0);
 }
 
@@ -240,11 +263,18 @@ void IotsaPixelstripMod::configSave() {
   cf.put("count", count);
   cf.put("bpp", bpp);
   cf.put("gamma", gamma);
+#ifdef TESTMODE_PIN
+  cf.put("testmode", testmode);
+#endif
 }
 
 void IotsaPixelstripMod::loop() {
 #ifdef TESTMODE_PIN
-  if (digitalRead(TESTMODE_PIN) && buffer != 0) {
+  bool testRunning = (testmode == 1);
+  if (testmode == 2) {
+    testRunning = digitalRead(TESTMODE_PIN);
+  }
+  if (testRunning && buffer != 0) {
     int value = (millis() >> 3) & 0xff;  // Loop intensities every 2 seconds, approximately
     int bits = (millis() >> 11) % ((1 << bpp)-1); // Cycle over which colors to light
     if (bits == 0) bits = ((1 << bpp)-1);
