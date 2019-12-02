@@ -11,7 +11,7 @@
 #define IotsaPixelstripModBaseMod IotsaMod
 #endif
 
-class IotsaPixelstripMod : public IotsaPixelstripModBaseMod, public IotsaDMXHandler {
+class IotsaPixelstripMod : public IotsaPixelstripModBaseMod, public IotsaDMXOutputHandler {
 public:
   IotsaPixelstripMod(IotsaApplication& app)
   : IotsaPixelstripModBaseMod(app),
@@ -26,7 +26,7 @@ public:
   void loop();
   String info();
   void setDMX(IotsaDMXMod *_dmx) { dmx = _dmx; };
-  void dmxCallback();
+  void dmxOutputChanged();
 protected:
   bool getHandler(const char *path, JsonObject& reply);
   bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply);

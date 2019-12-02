@@ -21,12 +21,12 @@ IotsaPixelstripMod::handler() {
     int val = server->arg("setValue").toInt();
     if (buffer && idx >= 0 && idx <= count*bpp) {
       buffer[idx] = val;
-      dmxCallback();
+      dmxOutputChanged();
     }
   } else if (server->hasArg("clear")) {
     if (buffer) {
       memset(buffer, 0, count*bpp);
-      dmxCallback();
+      dmxOutputChanged();
     }
   } else {
     bool anyChanged = false;
@@ -123,9 +123,9 @@ void IotsaPixelstripMod::setupStrip() {
     }
   }
   strip = new Adafruit_NeoPixel(count, pin, stripType);
-  dmxCallback();
+  dmxOutputChanged();
   if (dmx) {
-    dmx->setHandler(buffer, count*bpp, this);
+    dmx->setDMXOutputHandler(0, buffer, count*bpp, this);
   }
 }
 
@@ -204,14 +204,14 @@ bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request
       int value = it->as<int>();
       buffer[start++] = value;
     }
-    dmxCallback();
+    dmxOutputChanged();
     return true;
   }
   return false;
 }
 #endif // IOTSA_WITH_API
 
-void IotsaPixelstripMod::dmxCallback() {
+void IotsaPixelstripMod::dmxOutputChanged() {
   if (buffer == NULL) {
     return;
   }
@@ -287,7 +287,7 @@ void IotsaPixelstripMod::loop() {
         buffer[i*bpp+b] = thisValue;
       }
     }
-    dmxCallback();
+    dmxOutputChanged();
   }
 #endif
 }
