@@ -2,15 +2,25 @@
 #include "iotsaPixelstrip.h"
 #include "iotsaConfigFile.h"
 
+#ifndef NEOPIXEL_PIN
 #define NEOPIXEL_PIN 4  // "Normal" pin for NeoPixel
+#endif
+#ifndef NEOPIXEL_TYPE
 #define NEOPIXEL_TYPE (NEO_GRB + NEO_KHZ800)
+#endif
+#ifndef NEOPIXEL_COUNT
 #define NEOPIXEL_COUNT 1 // Default number of pixels
+#endif
+#ifndef NEOPIXEL_BPP
 #define NEOPIXEL_BPP 3  // Default number of colors per pixel
+#endif
 
 // Define TESTMODE_PIN if there is a test-mode switch attached
 // to that pin. The LEDs will show a looping pattern if that input is high.
 // #undef TESTMODE_PIN
+#if !defined(TESTMODE_PIN) && !defined(WITHOUT_TESTMODE)
 #define TESTMODE_PIN 5
+#endif
 
 #ifdef IOTSA_WITH_WEB
 
