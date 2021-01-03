@@ -38,18 +38,18 @@ public:
     packetSequence(0),
     udp()
   {}
-  void setup();
-  void serverSetup();
-  void loop();
-  String info();
+  void setup() override;
+  void serverSetup() override;
+  void loop() override;
+  String info() override;
   void setDMXOutputHandler(int outputPort, uint8_t *_buffer, size_t _count, IotsaDMXOutputHandler *_dmxHandler);
   void setDMXInputHandler(int inputPort, uint8_t *_buffer, size_t _count);
   void dmxInputChanged();
 protected:
-  bool getHandler(const char *path, JsonObject& reply);
-  bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply);
-  void configLoad();
-  void configSave();
+  bool getHandler(const char *path, JsonObject& reply) override;
+  bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply) override;
+  void configLoad() override;
+  void configSave() override;
   void handler();
   void fillPollReply();
 
