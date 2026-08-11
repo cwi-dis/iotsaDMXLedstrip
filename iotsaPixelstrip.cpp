@@ -152,7 +152,7 @@ bool IotsaPixelstripMod::getHandler(const char *path, JsonObject& reply) {
   #endif
     return true;
   } else if (strcmp(path, "/api/pixels") == 0) {
-    JsonArray data = reply.createNestedArray("data");
+    JsonArray data = reply["data"].to<JsonArray>();
     if (buffer) {
       for(int i=0; i<count*bpp; i++) {
         data.add(buffer[i]);
@@ -167,29 +167,23 @@ bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request
     JsonObject reqObj = request.as<JsonObject>();
   if (strcmp(path, "/api/pixelstrip") == 0) {
     bool anyChanged = false;
-    if (reqObj.containsKey("pin")) {
-      pin = reqObj["pin"];
+    if (getFromRequest<int>(reqObj, "pin", pin)) {
       anyChanged = true;
     }
-    if (reqObj.containsKey("stripType")) {
-      stripType = reqObj["stripType"];
+    if (getFromRequest<int>(reqObj, "stripType", stripType)) {
       anyChanged = true;
     }
-    if (reqObj.containsKey("count")) {
-      count = reqObj["count"];
+    if (getFromRequest<int>(reqObj, "count", count)) {
       anyChanged = true;
     }
-    if (reqObj.containsKey("bpp")) {
-      bpp = reqObj["bpp"];
+    if (getFromRequest<int>(reqObj, "bpp", bpp)) {
       anyChanged = true;
     }
-    if (reqObj.containsKey("gamma")) {
-      gamma = reqObj["gamma"];
+    if (getFromRequest<float>(reqObj, "gamma", gamma)) {
       anyChanged = true;
     }
 #ifdef TESTMODE_PIN
-    if (reqObj.containsKey("testmode")) {
-      testmode = reqObj["testmode"];
+    if (getFromRequest<int>(reqObj, "testmode", testmode)) {
       anyChanged = true;
     }
 
@@ -201,13 +195,12 @@ bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request
     return anyChanged;
   } else if (strcmp(path, "/api/pixels") == 0) {
     if (buffer == NULL) return false;
-    if (reqObj.containsKey("clear") && reqObj["clear"].as<bool>()) {
+    bool clear = false;
+    if (getFromRequest<bool, bool>(reqObj, "clear", clear) && clear) {
       memset(buffer, 0, count*bpp);
     }
     int start = 0;
-    if (reqObj.containsKey("start")) {
-      start = reqObj["start"];
-    }
+    getFromRequest<int>(reqObj, "start", start);
     JsonArray data = reqObj["data"];
     for(JsonArray::iterator it=data.begin(); it!=data.end(); ++it) {
       if (start >= count*bpp) return false;

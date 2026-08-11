@@ -101,7 +101,7 @@ IotsaDMXMod::handler() {
     fillPollReply();
   }
 
-  String message = "<html><head><title>Boilerplate module</title></head><body><h1>Boilerplate module</h1>";
+  String message = "<html><head><title>Art-Net DMX module</title></head><body><h1>Art-Net DMX module</h1>";
   message += "<form method='get'>Short name: <input name='shortName' value='" + htmlEncode(shortName) + "'><br>";
   message += "Long name: <input name='longName' value='" + htmlEncode(longName) + "'><br>";
   message += "DMX Universe of first port: <input name='universe' value='" + String(firstUniverse) + "'><br>";
@@ -112,7 +112,7 @@ IotsaDMXMod::handler() {
     message += "Port number for dimmers: " + String(outputPort) + "<br>";
     message += "Number of dimmers: " + String(outputCount) + "<br>";
     message += "Universe(s) for dimmers: ";
-    for (int i=0; i<outputCount; i += 512) {
+    for (size_t i=0; i<outputCount; i += 512) {
       message += String(firstUniverse + (i/512)) + " ";
     }
     message += "<br>";
@@ -156,25 +156,22 @@ bool IotsaDMXMod::getHandler(const char *path, JsonObject& reply) {
 bool IotsaDMXMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply) {
   bool anyChanged = false;
   JsonObject reqObj = request.as<JsonObject>();
-  if (reqObj.containsKey("shortName")) {
-    shortName = reqObj["shortName"].as<String>();
+  if (getFromRequest<const char *>(reqObj, "shortName", shortName)) {
     anyChanged = true;
   }
-  if (reqObj.containsKey("longName")) {
-    longName = reqObj["longName"].as<String>();
+  if (getFromRequest<const char *>(reqObj, "longName", longName)) {
     anyChanged = true;
   }
-  if (reqObj.containsKey("universe")) {
-    firstUniverse = reqObj["universe"];
+  if (getFromRequest<int>(reqObj, "universe", firstUniverse)) {
     anyChanged = true;
   }
-  if (reqObj.containsKey("firstIndex")) {
-    outputFirstIndex = reqObj["firstIndex"];
+  if (getFromRequest<int>(reqObj, "firstIndex", outputFirstIndex)) {
     anyChanged = true;
   }
-  if (reqObj.containsKey("sendAddress")) {
+  String sendAddressStr;
+  if (getFromRequest<const char *>(reqObj, "sendAddress", sendAddressStr)) {
     IPAddress newAddr;
-    if (newAddr.fromString(reqObj["sendAddress"].as<String>())) {
+    if (newAddr.fromString(sendAddressStr)) {
       sendAddress = newAddr;
       anyChanged = true;
     }
