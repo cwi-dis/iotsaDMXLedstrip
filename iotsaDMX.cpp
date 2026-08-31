@@ -64,9 +64,9 @@ struct ArtnetPacket outPkt = {
   .opcode=0x2100,
 };
 
-#ifdef IOTSA_WITH_WEB
 void
-IotsaDMXMod::handler() {
+IotsaDMXMod::webHandler() {
+  IotsaWebServer *server = api.webService->server;
   bool anyChanged = false;
   if (server->hasArg("shortName")) {
     if (needsAuthentication()) return;
@@ -136,14 +136,12 @@ String IotsaDMXMod::info() {
   String message = "<p>Built with Art-Net DMX module. See <a href=\"/dmx\">/dmx</a> to change the DMX parameters.</p>";
   return message;
 }
-#endif // IOTSA_WITH_WEB
 
 void IotsaDMXMod::setup() {
   configLoad();
   fillPollReply();
 }
 
-#ifdef IOTSA_WITH_API
 bool IotsaDMXMod::getHandler(const char *path, JsonObject& reply) {
   reply["shortName"] = shortName;
   reply["longName"] = longName;
@@ -182,16 +180,10 @@ bool IotsaDMXMod::putHandler(const char *path, const JsonVariant& request, JsonO
   }
   return anyChanged;
 }
-#endif // IOTSA_WITH_API
 
-void IotsaDMXMod::serverSetup() {
-#ifdef IOTSA_WITH_WEB
-  server->on("/dmx", std::bind(&IotsaDMXMod::handler, this));
-#endif
-#ifdef IOTSA_WITH_API
-  api.setup("/api/dmx", true, true);
+void IotsaDMXMod::lateSetup() {
+  api.setup("dmx", true, true);
   name = "dmx";
-#endif
   udp.begin(ARTNET_PORT);
 }
 

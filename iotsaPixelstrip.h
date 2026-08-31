@@ -5,24 +5,18 @@
 #include "iotsaDMX.h"
 #include <Adafruit_NeoPixel.h>
 
-#ifdef IOTSA_WITH_API
-#define IotsaPixelstripModBaseMod IotsaApiMod
-#else
-#define IotsaPixelstripModBaseMod IotsaMod
-#endif
-
-class IotsaPixelstripMod : public IotsaPixelstripModBaseMod, public IotsaDMXOutputHandler {
+class IotsaPixelstripMod : public IotsaModule, public IotsaDMXOutputHandler {
 public:
   IotsaPixelstripMod(IotsaApplication& app)
-  : IotsaPixelstripModBaseMod(app),
+  : IotsaModule(app),
     dmx(NULL),
     strip(NULL),
+    buffer(NULL),
     gammaTable(NULL),
     testmode(0)
   {}
-  using IotsaPixelstripModBaseMod::IotsaPixelstripModBaseMod;
   void setup() override;
-  void serverSetup() override;
+  void lateSetup() override;
   void loop() override;
   String info() override;
   void setDMX(IotsaDMXMod *_dmx) { dmx = _dmx; };
@@ -33,7 +27,7 @@ protected:
   void configLoad() override;
   void configSave() override;
   void setupStrip();
-  void handler();
+  void webHandler() override;
   IotsaDMXMod *dmx;
   Adafruit_NeoPixel *strip;
   uint8_t *buffer;

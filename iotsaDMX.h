@@ -4,22 +4,16 @@
 #include "iotsaApi.h"
 #include <WiFiUdp.h>
 
-#ifdef IOTSA_WITH_API
-#define IotsaDMXModBaseMod IotsaApiMod
-#else
-#define IotsaDMXModBaseMod IotsaMod
-#endif
-
 class IotsaDMXOutputHandler {
 public:
   virtual ~IotsaDMXOutputHandler() {};
   virtual void dmxOutputChanged() = 0;
 };
 
-class IotsaDMXMod : public IotsaDMXModBaseMod {
+class IotsaDMXMod : public IotsaModule {
 public:
   IotsaDMXMod(IotsaApplication& app)
-  : IotsaDMXModBaseMod(app),
+  : IotsaModule(app),
     outputPort(-1),
     outputFirstIndex(0),
     outputBuffer(NULL),
@@ -39,7 +33,7 @@ public:
     udp()
   {}
   void setup() override;
-  void serverSetup() override;
+  void lateSetup() override;
   void loop() override;
   String info() override;
   void setDMXOutputHandler(int outputPort, uint8_t *_buffer, size_t _count, IotsaDMXOutputHandler *_dmxHandler);
@@ -50,7 +44,7 @@ protected:
   bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply) override;
   void configLoad() override;
   void configSave() override;
-  void handler();
+  void webHandler() override;
   void fillPollReply();
 
   int outputPort;
