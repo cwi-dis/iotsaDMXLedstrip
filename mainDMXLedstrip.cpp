@@ -6,14 +6,10 @@
 //
 
 #include "iotsa.h"
-#include "iotsaWifi.h"
-#include "iotsaOta.h"
 #include "iotsaDMX.h"
 #include "iotsaPixelstrip.h"
 
 IotsaApplication application("Iotsa LED Server");
-IotsaWifiMod wifiMod(application);
-IotsaOtaMod otaMod(application);
 
 IotsaDMXMod dmxMod(application);
 IotsaPixelstripMod pixelstripMod(application);
