@@ -160,7 +160,7 @@ bool IotsaPixelstripMod::getHandler(const char *path, JsonObject& reply) {
   return false;
 }
 
-bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply) {
+bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request, JsonObject& reply, bool *changed) {
     JsonObject reqObj = request.as<JsonObject>();
   if (strcmp(path, "/api/pixelstrip") == 0) {
     bool anyChanged = false;
@@ -189,9 +189,10 @@ bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request
       configSave();
       setupStrip();
     }
-    return anyChanged;
+    if (anyChanged && changed) *changed = true;
+    return true;
   } else if (strcmp(path, "/api/pixels") == 0) {
-    if (buffer == NULL) return false;
+    if (buffer == NULL) return apiError(409, "pixelstrip not configured");
     bool clear = false;
     if (getFromRequest<bool, bool>(reqObj, "clear", clear) && clear) {
       memset(buffer, 0, count*bpp);
@@ -200,14 +201,14 @@ bool IotsaPixelstripMod::putHandler(const char *path, const JsonVariant& request
     getFromRequest<int>(reqObj, "start", start);
     JsonArray data = reqObj["data"];
     for(JsonArray::iterator it=data.begin(); it!=data.end(); ++it) {
-      if (start >= count*bpp) return false;
+      if (start >= count*bpp) return apiError(400, "data runs past the end of the strip");
       int value = it->as<int>();
       buffer[start++] = value;
     }
     dmxOutputChanged();
     return true;
   }
-  return false;
+  return apiError(404, "not found");
 }
 
 void IotsaPixelstripMod::dmxOutputChanged() {

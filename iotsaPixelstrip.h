@@ -23,7 +23,7 @@ public:
   void dmxOutputChanged() override;
 protected:
   bool getHandler(const char *path, JsonObject& reply) override;
-  bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply) override;
+  bool putHandler(const char *path, const JsonVariant& request, JsonObject& reply, bool *changed = nullptr) override;
   void configLoad() override;
   void configSave() override;
   void setupStrip();
