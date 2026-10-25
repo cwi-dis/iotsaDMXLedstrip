@@ -127,12 +127,12 @@ void IotsaPixelstripMod::setup() {
 }
 
 void IotsaPixelstripMod::setupStrip() {
-  IFDEBUG IotsaSerial.printf("setup count=%d bpp=%d pin=%d striptype=%d\n", count, bpp, pin, stripType);
+  IOTSA_LOG_DEBUG("pixelstrip", "setup count=%d bpp=%d pin=%d striptype=%d", count, bpp, pin, stripType);
   if (strip) delete strip;
   if (buffer) free(buffer);
   buffer = (uint8_t *)malloc(count*bpp);
   if (buffer == NULL) {
-    IotsaSerial.println("No memory");
+    IOTSA_LOG("pixelstrip", "out of memory");
   } else {
     memset(buffer, 0, count*bpp);
   }
@@ -141,7 +141,7 @@ void IotsaPixelstripMod::setupStrip() {
   if (gamma != 0 && gamma != 1) {
     gammaTable = (uint8_t *)malloc(256);
     if (gammaTable == NULL) {
-      IotsaSerial.println("No memory");
+      IOTSA_LOG("pixelstrip", "out of memory");
     }
     for(int i=0; i<256; i++) {
       float gval = powf((float)i/256.0, gamma);
@@ -215,7 +215,7 @@ void IotsaPixelstripMod::dmxOutputChanged() {
     return;
   }
   uint8_t *ptr = buffer;
-  IFDEBUG IotsaSerial.println("Show ");
+  IOTSA_LOG_DEBUG("pixelstrip", "show %d pixels", count);
   strip->begin();
   for (int i=0; i < count; i++) {
     uint32_t color = 0;
@@ -224,12 +224,9 @@ void IotsaPixelstripMod::dmxOutputChanged() {
       if (gammaTable) cval = gammaTable[cval];
       color = color << 8 | cval;
     }
-    IFDEBUG IotsaSerial.print(color, HEX);
-    IFDEBUG IotsaSerial.print(' ');
     strip->setPixelColor(i, color);
   }
   strip->show();
-  IFDEBUG IotsaSerial.println(" called");
 }
 
 void IotsaPixelstripMod::lateSetup() {
